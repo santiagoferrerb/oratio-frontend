@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardBody, Input, Select, SelectItem } from "@heroui/react";
 import { getCompanies } from "../services/companyService";
 import {
+  analyzeVideoStructure,
   createVideo,
   extractVideoAudio,
+  generateVideoScript,
   getVideos,
   transcribeVideoAudio,
 } from "../services/videoService";
@@ -32,6 +34,8 @@ export default function VideosPage() {
   const [actionErrorByVideo, setActionErrorByVideo] = useState({});
   const [extractingVideoIds, setExtractingVideoIds] = useState([]);
   const [transcribingVideoIds, setTranscribingVideoIds] = useState([]);
+  const [analyzingVideoIds, setAnalyzingVideoIds] = useState([]);
+  const [generatingVideoIds, setGeneratingVideoIds] = useState([]);
 
   async function loadPageData() {
     setLoading(true);
@@ -73,7 +77,10 @@ export default function VideosPage() {
       (video) =>
         video.audio_status === "processing" ||
         (video.processing_jobs || []).some(
-          (job) => job.job_type === "transcription" && job.status === "processing",
+          (job) =>
+            ["transcription", "content_analysis", "script_generation_ai"].includes(
+              job.job_type,
+            ) && job.status === "processing",
         ),
     );
 
@@ -151,6 +158,42 @@ export default function VideosPage() {
       }));
     } finally {
       setTranscribingVideoIds((current) => current.filter((id) => id !== videoId));
+    }
+  }
+
+  async function handleAnalyzeStructure(videoId) {
+    setActionErrorByVideo((current) => ({ ...current, [videoId]: "" }));
+    setAnalyzingVideoIds((current) => [...new Set([...current, videoId])]);
+
+    try {
+      await analyzeVideoStructure(videoId);
+      await refreshVideos();
+    } catch (requestError) {
+      setActionErrorByVideo((current) => ({
+        ...current,
+        [videoId]:
+          requestError.response?.data?.message || "No se pudo iniciar el analisis.",
+      }));
+    } finally {
+      setAnalyzingVideoIds((current) => current.filter((id) => id !== videoId));
+    }
+  }
+
+  async function handleGenerateScript(videoId) {
+    setActionErrorByVideo((current) => ({ ...current, [videoId]: "" }));
+    setGeneratingVideoIds((current) => [...new Set([...current, videoId])]);
+
+    try {
+      await generateVideoScript(videoId);
+      await refreshVideos();
+    } catch (requestError) {
+      setActionErrorByVideo((current) => ({
+        ...current,
+        [videoId]:
+          requestError.response?.data?.message || "No se pudo iniciar la generacion del guion.",
+      }));
+    } finally {
+      setGeneratingVideoIds((current) => current.filter((id) => id !== videoId));
     }
   }
 
@@ -281,14 +324,33 @@ export default function VideosPage() {
             const latestTranscriptionJob = [...(video.processing_jobs || [])]
               .filter((job) => job.job_type === "transcription")
               .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))[0];
+            const latestAnalysisJob = [...(video.processing_jobs || [])]
+              .filter((job) => job.job_type === "content_analysis")
+              .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))[0];
+            const latestGenerationJob = [...(video.processing_jobs || [])]
+              .filter((job) => job.job_type === "script_generation_ai")
+              .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))[0];
             const latestTranscription = [...(video.transcriptions || [])].sort(
               (left, right) => new Date(right.created_at) - new Date(left.created_at),
             )[0];
+            const latestScriptGeneration = [...(video.script_generations || [])].sort(
+              (left, right) => new Date(right.created_at) - new Date(left.created_at),
+            )[0];
+            const selectedVariant =
+              latestScriptGeneration?.variants?.find((variant) => variant.is_selected) ||
+              latestScriptGeneration?.variants?.[0];
+            const analysis = latestTranscription?.analysis_json;
             const isExtracting =
               extractingVideoIds.includes(video.id) || video.audio_status === "processing";
             const isTranscribing =
               transcribingVideoIds.includes(video.id) ||
               latestTranscriptionJob?.status === "processing";
+            const isAnalyzing =
+              analyzingVideoIds.includes(video.id) ||
+              latestAnalysisJob?.status === "processing";
+            const isGenerating =
+              generatingVideoIds.includes(video.id) ||
+              latestGenerationJob?.status === "processing";
 
             return (
             <Card
@@ -298,7 +360,7 @@ export default function VideosPage() {
               <CardBody className="gap-4 p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
+                    <h3 className="text-2xl font-semibold tracking-tight truncate max-w-md text-slate-950">
                       {video.filename || video.original_url || `Video #${video.id}`}
                     </h3>
                     <p className="mt-2 text-sm text-slate-500">
@@ -457,6 +519,240 @@ export default function VideosPage() {
                         </p>
                         <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-600">
                           {latestTranscription.raw_text || "Sin texto disponible todavia"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                        Analisis de estructura
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-slate-600">
+                        {latestAnalysisJob
+                          ? `${latestAnalysisJob.status} · ${latestAnalysisJob.progress}%`
+                          : "Aun no se ha lanzado el analisis"}
+                      </p>
+                    </div>
+                    <Button
+                      color="warning"
+                      variant={analysis ? "flat" : "solid"}
+                      isLoading={analyzingVideoIds.includes(video.id)}
+                      isDisabled={!latestTranscription || isAnalyzing}
+                      onPress={() => handleAnalyzeStructure(video.id)}
+                    >
+                      {analysis ? "Reanalizar estructura" : "Analizar estructura"}
+                    </Button>
+                  </div>
+
+                  {!latestTranscription ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Primero necesitas una transcripcion completada para poder analizarla.
+                    </p>
+                  ) : null}
+
+                  {latestAnalysisJob?.error_message ? (
+                    <p className="mt-3 text-sm text-danger">
+                      {latestAnalysisJob.error_message}
+                    </p>
+                  ) : null}
+
+                  {analysis ? (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Hook
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {analysis.hook}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Mensaje principal
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {analysis.main_message_summary}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Insight
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {analysis.insight}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            CTA
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {analysis.cta}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                          Por que funciona
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-slate-600">
+                          {analysis.why_it_works}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                          Claims detectados
+                        </p>
+                        <div className="mt-2 space-y-3">
+                          {(analysis.claims_detected || []).map((claim, index) => (
+                            <div
+                              key={`${video.id}-claim-${index}`}
+                              className="rounded-xl border border-slate-200 bg-white/70 p-3"
+                            >
+                              <p className="text-sm font-medium text-slate-900">{claim.claim}</p>
+                              <p className="mt-1 text-sm text-slate-600">
+                                {claim.assessment} · {claim.reason}
+                              </p>
+                              {(claim.evidence || []).map((evidence, evidenceIndex) => (
+                                <p
+                                  key={`${video.id}-claim-${index}-evidence-${evidenceIndex}`}
+                                  className="mt-2 text-xs text-slate-500"
+                                >
+                                  {evidence.source}: {evidence.title}
+                                </p>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                        Generacion de guion
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-slate-600">
+                        {latestGenerationJob
+                          ? `${latestGenerationJob.status} · ${latestGenerationJob.progress}%`
+                          : "Aun no se ha lanzado la generacion"}
+                      </p>
+                    </div>
+                    <Button
+                      color="success"
+                      isLoading={generatingVideoIds.includes(video.id)}
+                      isDisabled={!analysis || isGenerating}
+                      onPress={() => handleGenerateScript(video.id)}
+                    >
+                      Generar guion
+                    </Button>
+                  </div>
+
+                  {!analysis ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Primero analiza la estructura del contenido antes de generar un guion nuevo.
+                    </p>
+                  ) : null}
+
+                  {latestGenerationJob?.error_message ? (
+                    <p className="mt-3 text-sm text-danger">
+                      {latestGenerationJob.error_message}
+                    </p>
+                  ) : null}
+
+                  {latestScriptGeneration ? (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Version
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            v{latestScriptGeneration.version}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Estado
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {latestScriptGeneration.status}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Hook
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {latestScriptGeneration.hook || "Sin hook"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            CTA
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {latestScriptGeneration.cta || "Sin CTA"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedVariant ? (
+                        <div className="rounded-xl border border-slate-200 bg-white/70 p-4">
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                            Variante seleccionada
+                          </p>
+                          <p className="mt-2 text-base font-medium text-slate-900">
+                            {selectedVariant.title || "Sin titulo"}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-500">
+                            {selectedVariant.angle || "Sin angulo definido"}
+                          </p>
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                                Hook variante
+                              </p>
+                              <p className="mt-2 text-sm leading-7 text-slate-600">
+                                {selectedVariant.hook || "Sin hook"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                                CTA variante
+                              </p>
+                              <p className="mt-2 text-sm leading-7 text-slate-600">
+                                {selectedVariant.cta || "Sin CTA"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                              Body variante
+                            </p>
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                              {selectedVariant.body || "Sin body"}
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                          Guion completo
+                        </p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                          {latestScriptGeneration.generated_script || "Sin guion generado todavia"}
                         </p>
                       </div>
                     </div>

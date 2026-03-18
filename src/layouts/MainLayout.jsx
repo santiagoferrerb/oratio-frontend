@@ -1,5 +1,6 @@
 import { Button, Card, CardBody } from "@heroui/react";
 import {
+  HiOutlineAdjustmentsHorizontal,
   HiOutlineBuildingOffice2,
   HiOutlineHome,
   HiOutlinePlay,
@@ -17,6 +18,12 @@ const navigationItems = [
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
+  const items = user?.role?.name === "admin"
+    ? [
+        ...navigationItems,
+        { to: "/admin/prompt-templates", label: "Prompts", icon: HiOutlineAdjustmentsHorizontal },
+      ]
+    : navigationItems;
 
   return (
     <div className="h-screen overflow-hidden bg-transparent px-4 py-4 text-slate-900 md:px-6 md:py-6">
@@ -36,7 +43,7 @@ export default function MainLayout() {
               <p className="text-sm text-slate-400">{user?.email}</p>
             </div>
             <nav className="space-y-2">
-              {navigationItems.map((item) => {
+              {items.map((item) => {
                 const Icon = item.icon;
 
                 return (
