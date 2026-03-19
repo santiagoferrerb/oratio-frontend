@@ -114,6 +114,7 @@ export default function DashboardPage() {
       id: scriptGeneration.id,
       title: `Generacion #${scriptGeneration.id}`,
       company: `Empresa #${scriptGeneration.company_id}`,
+      campaign: scriptGeneration.campaign?.name || null,
       source: scriptGeneration.video?.platform || "Sin plataforma",
       status: scriptGeneration.status,
       progress:
@@ -128,29 +129,22 @@ export default function DashboardPage() {
           : "Completar transcripcion, adaptacion y cierre comercial",
       summary:
         scriptGeneration.video?.platform
-          ? `Asociado a ${scriptGeneration.video.platform}. Version ${scriptGeneration.version}.`
+          ? `${scriptGeneration.campaign?.name ? `Campana ${scriptGeneration.campaign.name}. ` : ""}Asociado a ${scriptGeneration.video.platform}. Version ${scriptGeneration.version}.`
           : `Version ${scriptGeneration.version} lista para continuar.`,
     })) || [];
 
-  const companyProfile = [
-    ["Usuario", user?.name || "Sin sesion"],
-    ["Email", user?.email || "Sin email"],
-    ["Empresas", String(overview?.metrics?.companies || 0)],
-    ["Videos", String(overview?.metrics?.videos || 0)],
-  ];
-
   return (
-    <div className="mx-auto flex min-h-full max-w-6xl flex-col gap-10 pb-10">
-      <section className="border-b border-slate-200/80 pb-8 pt-2">
+    <div className="mx-auto flex min-h-full max-w-6xl flex-col gap-8 pb-10">
+      <section className="border-b border-slate-200/80 pb-6 pt-1">
         <p className="text-xs uppercase tracking-[0.35em] text-sky-600">Home interno</p>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-semibold tracking-tight text-slate-950 md:text-5xl">
-              Sigue el guion correcto sin perder contexto de marca.
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+              Panel de trabajo editorial
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
-              Oratio organiza el trabajo editorial para que sepas que pieza continuar, en que
-              etapa esta y que falta para convertir una referencia en un guion claro y vendible.
+            <p className="mt-2 max-w-xl text-sm leading-7 text-slate-600">
+              Revisa el estado del pipeline y retoma rapido los guiones que todavia necesitan una
+              siguiente accion clara.
             </p>
           </div>
 
@@ -159,7 +153,6 @@ export default function DashboardPage() {
               as={Link}
               to="/script-generations"
               color="primary"
-              size="lg"
               startContent={<HiOutlineBolt />}
             >
               Nuevo guion
@@ -167,7 +160,6 @@ export default function DashboardPage() {
             <Button
               as={Link}
               to="/companies"
-              size="lg"
               variant="light"
               className="text-slate-700"
               startContent={<HiOutlineSparkles />}
@@ -177,34 +169,38 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-slate-950 px-5 py-5 text-white">
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-3xl bg-slate-950 px-5 py-4 text-white">
             <p className="text-sm text-slate-400">Guiones activos</p>
-            <strong className="mt-3 block text-4xl font-semibold">
+            <strong className="mt-2 block text-3xl font-semibold">
               {overview?.metrics?.script_generations || 0}
             </strong>
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-1 text-sm text-slate-300">
               {overview?.recent_script_generations?.length || 0} recientes listos para revisar
             </p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
+          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4">
             <p className="text-sm text-slate-500">Videos por procesar</p>
-            <strong className="mt-3 block text-4xl font-semibold text-slate-950">
+            <strong className="mt-2 block text-3xl font-semibold text-slate-950">
               {overview?.videos_by_status?.pending || 0}
             </strong>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500">
               {overview?.videos_by_status?.processing || 0} adicionales siguen en procesamiento.
             </p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-5">
-            <p className="text-sm text-slate-500">Sesion</p>
-            <strong className="mt-3 block text-2xl font-semibold text-slate-950">{user?.name}</strong>
-            <p className="mt-2 text-sm text-slate-500">{user?.email}</p>
+          <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4">
+            <p className="text-sm text-slate-500">Empresas activas</p>
+            <strong className="mt-2 block text-3xl font-semibold text-slate-950">
+              {overview?.metrics?.companies || 0}
+            </strong>
+            <p className="mt-1 text-sm text-slate-500">
+              {overview?.metrics?.videos || 0} videos asociados al flujo actual.
+            </p>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <section className="min-w-0">
         <div className="min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 pb-4">
             <div>
@@ -232,34 +228,17 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+      </section>
 
-        <aside className="space-y-6 lg:sticky lg:top-0 lg:self-start">
-          <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/70 p-5 backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.3em] text-sky-600">Perfil activo</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-              Contexto actual
-            </h2>
-            <div className="mt-5 space-y-4">
-              {companyProfile.map(([label, value]) => (
-                <div key={label}>
-                  <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{label}</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">{value}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-[1.75rem] border border-slate-200/80 bg-sky-50/90 p-5">
-            <div className="flex items-center gap-2 text-sky-700">
-              <HiArrowUpRight className="text-lg" />
-              <p className="text-xs uppercase tracking-[0.24em]">Foco de hoy</p>
-            </div>
-            <p className="mt-3 text-sm leading-7 text-slate-700">
-              Primero consolida empresas y videos. Con eso ya puedes probar el circuito completo
-              hasta generacion de guiones antes de automatizar transcripcion.
-            </p>
-          </section>
-        </aside>
+      <section className="rounded-[1.75rem] border border-slate-200/80 bg-sky-50/90 p-5">
+        <div className="flex items-center gap-2 text-sky-700">
+          <HiArrowUpRight className="text-lg" />
+          <p className="text-xs uppercase tracking-[0.24em]">Foco de hoy</p>
+        </div>
+        <p className="mt-3 text-sm leading-7 text-slate-700">
+          Primero consolida empresas y videos. Con eso ya puedes probar el circuito completo
+          hasta generacion de guiones antes de automatizar transcripcion.
+        </p>
       </section>
     </div>
   );

@@ -5,6 +5,11 @@ export async function getPromptTemplates() {
   return data;
 }
 
+export async function createPromptTemplate(payload) {
+  const { data } = await api.post("/admin/prompt-templates", payload);
+  return data;
+}
+
 export async function updatePromptTemplate(id, payload) {
   const { data } = await api.patch(`/admin/prompt-templates/${id}`, payload);
   return data;

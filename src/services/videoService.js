@@ -30,7 +30,7 @@ export async function analyzeVideoStructure(id) {
   return data;
 }
 
-export async function generateVideoScript(id) {
-  const { data } = await api.post(`/videos/${id}/generate-script`);
+export async function generateVideoScript(id, payload = {}) {
+  const { data } = await api.post(`/videos/${id}/generate-script`, payload);
   return data;
 }

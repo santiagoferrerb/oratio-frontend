@@ -14,6 +14,7 @@ import { getVideos } from "../services/videoService";
 
 const initialForm = {
   company_id: "",
+  campaign_id: "",
   video_id: "",
   original_script: "",
   generated_script: "",
@@ -80,6 +81,15 @@ export default function ScriptGenerationsPage() {
     return videos.filter((video) => String(video.company_id) === String(form.company_id));
   }, [form.company_id, videos]);
 
+  const filteredCampaigns = useMemo(() => {
+    if (!form.company_id) {
+      return [];
+    }
+
+    const company = companies.find((item) => String(item.id) === String(form.company_id));
+    return (company?.campaigns || []).filter((campaign) => campaign.status !== "archived");
+  }, [companies, form.company_id]);
+
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);
@@ -97,6 +107,7 @@ export default function ScriptGenerationsPage() {
 
       await createScriptGeneration({
         company_id: Number(form.company_id),
+        campaign_id: form.campaign_id ? Number(form.campaign_id) : null,
         video_id: Number(form.video_id),
         original_script: form.original_script || null,
         generated_script: form.generated_script || null,
@@ -164,6 +175,7 @@ export default function ScriptGenerationsPage() {
                   setForm((current) => ({
                     ...current,
                     company_id: value || "",
+                    campaign_id: "",
                     video_id: "",
                   }));
                 }}
@@ -171,6 +183,25 @@ export default function ScriptGenerationsPage() {
               >
                 {companies.map((company) => (
                   <SelectItem key={String(company.id)}>{company.name}</SelectItem>
+                ))}
+              </Select>
+
+              <Select
+                label="Campana"
+                selectedKeys={form.campaign_id ? [form.campaign_id] : []}
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0];
+                  setForm((current) => ({ ...current, campaign_id: value || "" }));
+                }}
+                isDisabled={!form.company_id || filteredCampaigns.length === 0}
+                description={
+                  form.company_id
+                    ? "Opcional. Usa una campana si quieres orientar el mensaje y CTA."
+                    : "Selecciona primero una empresa."
+                }
+              >
+                {filteredCampaigns.map((campaign) => (
+                  <SelectItem key={String(campaign.id)}>{campaign.name}</SelectItem>
                 ))}
               </Select>
 
@@ -310,6 +341,11 @@ export default function ScriptGenerationsPage() {
                     <p className="mt-2 text-sm text-slate-500">
                       {scriptGeneration.video?.platform || "Sin plataforma"} ·{" "}
                       {scriptGeneration.status}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {scriptGeneration.campaign?.name
+                        ? `Campana: ${scriptGeneration.campaign.name}`
+                        : "Guion sin campana"}
                     </p>
                   </div>
                   <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-700">
