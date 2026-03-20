@@ -6,6 +6,10 @@ import {
   Card,
   CardBody,
   Chip,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
   Input,
   Modal,
   ModalBody,
@@ -14,7 +18,15 @@ import {
   ModalHeader,
   Textarea,
 } from "@heroui/react";
-import { HiOutlineBuildingOffice2, HiOutlinePlus, HiOutlineSparkles } from "react-icons/hi2";
+import { LuDot } from "react-icons/lu";
+
+import {
+  HiOutlineBuildingOffice2,
+  HiOutlineEllipsisHorizontal,
+  HiOutlinePencilSquare,
+  HiOutlinePlus,
+  HiOutlineSparkles,
+} from "react-icons/hi2";
 import {
   createCampaign,
   createCompany,
@@ -54,24 +66,47 @@ const campaignStatusLabels = {
 
 function CampaignPreview({ campaign }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+    <div className="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-950">{campaign.name}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{campaign.objective}</p>
+          <p className="text-sm font-semibold text-neutral-950">
+            {campaign.name}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">
+            {campaign.objective}
+          </p>
         </div>
-        <Chip size="sm" variant="flat" color={campaign.status === "active" ? "success" : "default"}>
+        <Chip
+          size="sm"
+          variant="flat"
+          color={campaign.status === "active" ? "success" : "default"}
+        >
           {campaignStatusLabels[campaign.status] || campaign.status}
         </Chip>
       </div>
 
       {campaign.core_message ? (
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          <span className="font-medium text-slate-800">Mensaje:</span> {campaign.core_message}
+        <p className="mt-3 text-sm leading-6 text-neutral-600">
+          <span className="font-medium text-neutral-800">Mensaje:</span>{" "}
+          {campaign.core_message}
         </p>
       ) : null}
     </div>
   );
+}
+
+function formatDisplayText(value, fallback) {
+  if (!value) {
+    return fallback;
+  }
+
+  const normalizedValue = String(value).trim();
+
+  if (!normalizedValue) {
+    return fallback;
+  }
+
+  return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
 }
 
 export default function CompaniesPage() {
@@ -97,7 +132,10 @@ export default function CompaniesPage() {
       const { companies: nextCompanies } = await getCompanies();
       setCompanies(nextCompanies);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "No se pudieron cargar las empresas.");
+      setError(
+        requestError.response?.data?.message ||
+          "No se pudieron cargar las empresas.",
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +148,10 @@ export default function CompaniesPage() {
   const companiesSummary = useMemo(
     () => ({
       companies: companies.length,
-      campaigns: companies.reduce((total, company) => total + (company.campaigns?.length || 0), 0),
+      campaigns: companies.reduce(
+        (total, company) => total + (company.campaigns?.length || 0),
+        0,
+      ),
     }),
     [companies],
   );
@@ -133,7 +174,8 @@ export default function CompaniesPage() {
   }
 
   function openEditCompanyModal(company) {
-    const activeBrief = company.briefs?.find((brief) => brief.is_active) || company.briefs?.[0];
+    const activeBrief =
+      company.briefs?.find((brief) => brief.is_active) || company.briefs?.[0];
 
     setCompanyError("");
     setEditingCompany(company);
@@ -193,7 +235,9 @@ export default function CompaniesPage() {
     } catch (requestError) {
       setCompanyError(
         requestError.response?.data?.message ||
-          (editingCompany ? "No se pudo actualizar la empresa." : "No se pudo crear la empresa."),
+          (editingCompany
+            ? "No se pudo actualizar la empresa."
+            : "No se pudo crear la empresa."),
       );
     } finally {
       setSubmittingCompany(false);
@@ -226,7 +270,9 @@ export default function CompaniesPage() {
       setSelectedCompany(null);
       await loadCompanies();
     } catch (requestError) {
-      setCampaignError(requestError.response?.data?.message || "No se pudo crear la campana.");
+      setCampaignError(
+        requestError.response?.data?.message || "No se pudo crear la campana.",
+      );
     } finally {
       setSubmittingCampaign(false);
     }
@@ -234,28 +280,34 @@ export default function CompaniesPage() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col gap-8 pb-10">
-      <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 pb-6">
+      <section className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-200/80 pb-6">
         <div className="max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.35em] text-sky-600">Empresas</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
-            Contexto de marca y campanas
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 md:text-4xl">
+            Gestion de empresas
           </h1>
-          <p className="mt-2 text-sm leading-7 text-slate-600">
-            Prioriza las empresas ya creadas, revisa su brief activo y agrega campanas sin perder
-            el foco del listado.
+          <p className="mt-2 text-sm text-neutral-600">
+            Revisa el contexto de marca y crea Campaña sin salir del listado.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            <span className="font-semibold text-slate-950">{companiesSummary.companies}</span>{" "}
-            empresas
+          <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-600">
+            <span className="font-semibold text-neutral-950">
+              {companiesSummary.companies}
+            </span>{" "}
+            Empresas
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            <span className="font-semibold text-slate-950">{companiesSummary.campaigns}</span>{" "}
-            campanas
+          <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-600">
+            <span className="font-semibold text-neutral-950">
+              {companiesSummary.campaigns}
+            </span>{" "}
+            Campañas
           </div>
-          <Button color="primary" startContent={<HiOutlinePlus />} onPress={openCompanyModal}>
+          <Button
+            color="primary"
+            startContent={<HiOutlinePlus />}
+            onPress={openCompanyModal}
+          >
             Nueva empresa
           </Button>
         </div>
@@ -263,22 +315,30 @@ export default function CompaniesPage() {
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-      {loading ? <p className="text-sm text-slate-500">Cargando empresas...</p> : null}
+      {loading ? (
+        <p className="text-sm text-neutral-500">Cargando empresas...</p>
+      ) : null}
 
       {!loading && companies.length === 0 ? (
-        <Card className="border border-dashed border-slate-300 bg-white/70">
-          <CardBody className="flex flex-col items-start gap-4 p-8 text-sm leading-7 text-slate-500">
+        <Card className="border border-dashed border-neutral-300 bg-white/70">
+          <CardBody className="flex flex-col items-start gap-4 p-8 text-sm leading-7 text-neutral-500">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
               <HiOutlineBuildingOffice2 className="text-2xl" />
             </div>
             <div>
-              <p className="text-base font-semibold text-slate-900">Aun no hay empresas</p>
+              <p className="text-base font-semibold text-neutral-900">
+                Aun no hay empresas
+              </p>
               <p className="mt-2 max-w-xl">
-                Crea la primera empresa para empezar a organizar brief, videos y campanas desde un
-                contexto de marca consistente.
+                Crea la primera empresa para empezar a organizar brief, videos y
+                Campaña desde un contexto de marca consistente.
               </p>
             </div>
-            <Button color="primary" startContent={<HiOutlinePlus />} onPress={openCompanyModal}>
+            <Button
+              color="primary"
+              startContent={<HiOutlinePlus />}
+              onPress={openCompanyModal}
+            >
               Crear primera empresa
             </Button>
           </CardBody>
@@ -289,40 +349,73 @@ export default function CompaniesPage() {
         <Accordion selectionMode="multiple" variant="splitted" className="px-0">
           {companies.map((company) => {
             const activeBrief =
-              company.briefs?.find((brief) => brief.is_active) || company.briefs?.[0];
+              company.briefs?.find((brief) => brief.is_active) ||
+              company.briefs?.[0];
             const campaigns = company.campaigns || [];
             const visibleCampaigns = campaigns.slice(0, 2);
-            const briefSummary = activeBrief?.objective_summary || "Sin objetivo";
+            const hasBrief = Boolean(activeBrief);
+            const briefSummary =
+              activeBrief?.objective_summary ||
+              activeBrief?.objective ||
+              "Sin brief activo";
 
             return (
               <AccordionItem
                 key={String(company.id)}
                 aria-label={company.name}
                 classNames={{
-                  base: "rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-0 shadow-sm shadow-slate-200/40",
-                  trigger: "cursor-pointer px-6 py-5 hover:bg-slate-50/80",
+                  base: "rounded-[1.75rem] border border-neutral-200/80 bg-white/90 px-0 shadow-sm shadow-neutral-200/40",
+                  trigger: "cursor-pointer px-6 py-5 hover:bg-neutral-50/80",
                   title: "text-left",
                   content: "px-6 pb-6 pt-0",
                 }}
                 title={
                   <div className="min-w-0 max-w-full">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="min-w-0 truncate text-xl font-semibold tracking-tight text-slate-950">
-                        {company.name}
-                      </p>
-                      <Chip size="sm" variant="flat" color="primary">
-                        #{company.id}
-                      </Chip>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="min-w-0 truncate text-xl font-semibold tracking-tight text-neutral-950">
+                            {company.name}
+                          </p>
+                          <Chip size="sm" variant="flat" color="primary">
+                            {campaigns.length} campanas
+                          </Chip>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-500">
+                          <span>
+                            {company.industry || "Industria no definida"}
+                          </span>
+                          <span className="text-neutral-300">•</span>
+                          <span>{hasBrief ? "Brief activo" : "Sin brief"}</span>
+                        </div>
+                      </div>
+                      <Dropdown placement="bottom-end">
+                        <DropdownTrigger>
+                          <button
+                            type="button"
+                            aria-label={`Acciones de ${company.name}`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-700"
+                          >
+                            <HiOutlineEllipsisHorizontal className="text-lg" />
+                          </button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                          aria-label={`Acciones para ${company.name}`}
+                        >
+                          <DropdownItem
+                            key="edit-company"
+                            startContent={<HiOutlinePencilSquare />}
+                            onPress={() => openEditCompanyModal(company)}
+                          >
+                            Editar empresa
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
                     </div>
-                    <p className="mt-2 truncate text-sm text-slate-500">
-                      {company.industry || "Industria no definida"}
-                    </p>
                   </div>
                 }
                 subtitle={
-                  <div className="mt-3 flex min-w-0 max-w-full items-center gap-2 overflow-hidden text-sm text-slate-500">
-                    <span className="shrink-0">{campaigns.length} campanas</span>
-                    <span className="text-slate-300">·</span>
+                  <div className="mt-3 flex min-w-0 max-w-full items-center gap-2 overflow-hidden text-sm text-neutral-500">
                     <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                       {briefSummary}
                     </span>
@@ -330,77 +423,117 @@ export default function CompaniesPage() {
                 }
               >
                 <div className="space-y-6">
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="light" onPress={() => openEditCompanyModal(company)}>
-                      Editar empresa
-                    </Button>
-                    <Button
-                      color="secondary"
-                      variant="flat"
-                      startContent={<HiOutlineSparkles />}
-                      onPress={() => openCampaignModal(company)}
-                    >
-                      Crear campana
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Tono</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-700">
-                        {activeBrief?.tone || "Sin brief activo"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Audiencia</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-700">
-                        {activeBrief?.target_audience || "Sin audiencia definida"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">CTA</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-700">
-                        {activeBrief?.cta_style || "Sin CTA style"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Objetivo</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-700">
-                        {activeBrief?.objective || "Sin objetivo declarado"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[1.5rem] border border-slate-200/80 bg-slate-50/60 p-5">
+                  <div className="rounded-[1.5rem] border border-neutral-200/80 bg-white px-5 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                          Campanas
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-500">
+                          Brief
                         </p>
-                        <p className="mt-2 text-sm text-slate-500">
-                          {campaigns.length
-                            ? `${campaigns.length} registradas para esta empresa.`
-                            : "Todavia no hay campanas para esta empresa."}
+                        <LuDot />
+                        <p className=" text-sm text-neutral-500">
+                          Resumen rapido del contexto de marca para esta
+                          empresa.
                         </p>
                       </div>
-                      {campaigns.length ? (
-                        <Chip size="sm" variant="flat">
-                          {campaigns.length} total
+                      {!hasBrief && (
+                        <Chip size="sm" variant="flat" color="warning">
+                          Pendiente
                         </Chip>
-                      ) : null}
+                      )}
+                    </div>
+
+                    <div className="mt-8 space-y-3">
+                      <div className="grid gap-1 md:grid-cols-[120px_minmax(0,1fr)] md:items-start md:gap-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-800">
+                          Objetivo
+                        </p>
+                        <p className="text-sm leading-6 text-neutral-700">
+                          {formatDisplayText(
+                            activeBrief?.objective,
+                            "Sin objetivo declarado",
+                          )}
+                        </p>
+                      </div>
+                      <div className="grid gap-1 border-t border-neutral-100 pt-3 md:grid-cols-[120px_minmax(0,1fr)] md:items-start md:gap-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-800">
+                          Audiencia
+                        </p>
+                        <p className="text-sm leading-6 text-neutral-700">
+                          {formatDisplayText(
+                            activeBrief?.target_audience,
+                            "Sin audiencia definida",
+                          )}
+                        </p>
+                      </div>
+                      <div className="grid gap-1 border-t border-neutral-100 pt-3 md:grid-cols-[120px_minmax(0,1fr)] md:items-start md:gap-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-800">
+                          Tono
+                        </p>
+                        <p className="text-sm leading-6 text-neutral-700">
+                          {formatDisplayText(
+                            activeBrief?.tone,
+                            "Sin tono definido",
+                          )}
+                        </p>
+                      </div>
+                      <div className="grid gap-1 border-t border-neutral-100 pt-3 md:grid-cols-[120px_minmax(0,1fr)] md:items-start md:gap-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-800">
+                          CTA
+                        </p>
+                        <p className="text-sm leading-6 text-neutral-700">
+                          {formatDisplayText(
+                            activeBrief?.cta_style,
+                            "Sin CTA definido",
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-neutral-200/80 bg-neutral-50/60 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">
+                          Campaña
+                        </p>
+                        <p className="mt-2 text-sm text-neutral-500">
+                          {campaigns.length
+                            ? `${campaigns.length} registradas para esta empresa.`
+                            : "Todavia no hay Campaña para esta empresa."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {campaigns.length ? (
+                          <Chip size="sm" variant="flat">
+                            {campaigns.length} total
+                          </Chip>
+                        ) : null}
+                        <Button
+                          color="secondary"
+                          variant="flat"
+                          startContent={<HiOutlineSparkles />}
+                          onPress={() => openCampaignModal(company)}
+                        >
+                          Crear campana
+                        </Button>
+                      </div>
                     </div>
 
                     {visibleCampaigns.length ? (
                       <div className="mt-4 grid gap-3 lg:grid-cols-2">
                         {visibleCampaigns.map((campaign) => (
-                          <CampaignPreview key={campaign.id} campaign={campaign} />
+                          <CampaignPreview
+                            key={campaign.id}
+                            campaign={campaign}
+                          />
                         ))}
                       </div>
                     ) : null}
 
                     {campaigns.length > visibleCampaigns.length ? (
-                      <p className="mt-4 text-sm text-slate-500">
-                        Y {campaigns.length - visibleCampaigns.length} campanas mas listas para revisar.
+                      <p className="mt-4 text-sm text-neutral-500">
+                        Y {campaigns.length - visibleCampaigns.length} Campaña
+                        mas listas para revisar.
                       </p>
                     ) : null}
                   </div>
@@ -424,12 +557,15 @@ export default function CompaniesPage() {
       >
         <ModalContent className="max-h-[85vh]">
           {(onClose) => (
-            <form onSubmit={handleCompanySubmit} className="flex h-full flex-col overflow-hidden">
+            <form
+              onSubmit={handleCompanySubmit}
+              className="flex h-full flex-col overflow-hidden"
+            >
               <ModalHeader className="flex flex-col gap-1">
-                <span className="text-2xl font-semibold text-slate-950">
+                <span className="text-2xl font-semibold text-neutral-950">
                   {editingCompany ? "Editar empresa" : "Nueva empresa"}
                 </span>
-                <span className="text-sm font-normal text-slate-500">
+                <span className="text-sm font-normal text-neutral-500">
                   {editingCompany
                     ? "Actualiza los datos base y el brief activo de la empresa."
                     : "Crea la empresa y define su primer brief activo."}
@@ -449,7 +585,12 @@ export default function CompaniesPage() {
                   value={companyForm.industry}
                   onChange={handleCompanyChange}
                 />
-                <Input label="Tono" name="tone" value={companyForm.tone} onChange={handleCompanyChange} />
+                <Input
+                  label="Tono"
+                  name="tone"
+                  value={companyForm.tone}
+                  onChange={handleCompanyChange}
+                />
                 <Input
                   label="Audiencia"
                   name="target_audience"
@@ -497,13 +638,19 @@ export default function CompaniesPage() {
                   onChange={handleCompanyChange}
                   minRows={3}
                 />
-                {companyError ? <p className="text-sm text-danger">{companyError}</p> : null}
+                {companyError ? (
+                  <p className="text-sm text-danger">{companyError}</p>
+                ) : null}
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color="primary" type="submit" isLoading={submittingCompany}>
+                <Button
+                  color="primary"
+                  type="submit"
+                  isLoading={submittingCompany}
+                >
                   {editingCompany ? "Guardar cambios" : "Crear empresa"}
                 </Button>
               </ModalFooter>
@@ -525,10 +672,15 @@ export default function CompaniesPage() {
       >
         <ModalContent className="max-h-[85vh]">
           {(onClose) => (
-            <form onSubmit={handleCampaignSubmit} className="flex h-full flex-col overflow-hidden">
+            <form
+              onSubmit={handleCampaignSubmit}
+              className="flex h-full flex-col overflow-hidden"
+            >
               <ModalHeader className="flex flex-col gap-1">
-                <span className="text-2xl font-semibold text-slate-950">Nueva campana</span>
-                <span className="text-sm font-normal text-slate-500">
+                <span className="text-2xl font-semibold text-neutral-950">
+                  Nueva campana
+                </span>
+                <span className="text-sm font-normal text-neutral-500">
                   {selectedCompany
                     ? `Se creara dentro de ${selectedCompany.name}.`
                     : "Define un objetivo comercial claro para esta marca."}
@@ -584,13 +736,19 @@ export default function CompaniesPage() {
                   onChange={handleCampaignChange}
                   minRows={3}
                 />
-                {campaignError ? <p className="text-sm text-danger">{campaignError}</p> : null}
+                {campaignError ? (
+                  <p className="text-sm text-danger">{campaignError}</p>
+                ) : null}
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color="secondary" type="submit" isLoading={submittingCampaign}>
+                <Button
+                  color="secondary"
+                  type="submit"
+                  isLoading={submittingCampaign}
+                >
                   Crear campana
                 </Button>
               </ModalFooter>

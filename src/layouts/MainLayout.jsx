@@ -154,7 +154,7 @@ export default function MainLayout() {
                   <Avatar
                     name={user?.name || "Usuario"}
                     fallback={initials}
-                    className="h-11 w-11 shrink-0 bg-lime-500/90 text-slate-900"
+                    className="h-11 w-11 text-xl shrink-0 bg-blue-500/90 text-slate-900"
                   />
                   {!sidebarCollapsed ? (
                     <div className="min-w-0 flex-1">
